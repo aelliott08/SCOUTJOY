@@ -1,0 +1,21 @@
+Package: scoutjoy
+Title: Significant Cross-trait OUtliers and Trends in JOint York regression
+Version: 0.0.5
+Authors@R: c(
+    person("Amanda", "Elliott", email = "aelliott@broadinstitute.org", role = c("aut")), 
+    person("Raymond", "Walters", email = "rwalters@broadinstitute.org", role = c("aut", "cre"))
+    )
+Description: Compare genetic effect sizes (with standard errors) 
+    from two studies to identify regression trend and significant 
+    outliers or overdispersion. Allows sample overlap with estimation
+    of residual correlation from LD Score regression.
+License: GPL-3
+Imports:
+    yorktools,
+    MASS,
+    mvtnorm
+Remotes:
+    github::rkwalters/yorktools
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
