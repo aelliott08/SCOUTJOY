@@ -74,7 +74,7 @@
 #' 
 
 
-scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids = NULL, CovIntercept = 0, ExposureIntercept=1, OutcomeIntercept=1, OutlierNull="estimate", SignifThreshold = 0.05, NullReplicates = NA, maxOutlierReps=10, seed = NULL, printProgress = TRUE){
+scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids = NULL, CovIntercept = 0, ExposureIntercept=1, OutcomeIntercept=1, OutlierNull="estimate", SignifThreshold = 0.05, NullReplicates = NA, maxOutlierReps=10, seed = NULL, printProgress = TRUE, init_outliers=NA){
 
   
 	if(!is.null(seed)){
@@ -173,7 +173,7 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
 	
 	if(AnalyticLoss){
 	
-	  OutlierTest <- AnalyticOutlierTest(data, putativeOutliers=NA, OutlierNull=OutlierNull, FixedSlope=FixedSlope)
+	  OutlierTest <- AnalyticOutlierTest(data, putativeOutliers=init_outliers, OutlierNull=OutlierNull, FixedSlope=FixedSlope)
 	  
 	  
 	}else{
