@@ -15,7 +15,7 @@ Imports:
     MASS,
     mvtnorm
 Remotes:
-    github::rkwalters/yorktools
+    github::rkwalters/yorktools@main
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
