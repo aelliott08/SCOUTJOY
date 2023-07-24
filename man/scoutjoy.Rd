@@ -15,53 +15,79 @@ scoutjoy(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data,
 
 \item{BetaExposure}{String, giving the column name in `data` for the effect sizes (betas) on the exposure (x-axis trait)}
 
-\item{SdOutcome, }{String, giving the column name in `data` for the standard error (se) of the effect sizes on the outcome (y-axis trait)}
+\item{SdOutcome}{String, giving the column name in `data` for the standard error (se) of the effect sizes on the outcome (y-axis trait)}
 
-\item{SdExposure, }{String, giving the column name in `data` for the standard error (se) of the effect sizes on the exposure (x-axis trait)}
+\item{SdExposure}{String, giving the column name in `data` for the standard error (se) of the effect sizes on the exposure (x-axis trait)}
 
 \item{data}{Data frame with the specified column names containing effect sizes and standard errors}
 
 \item{ids}{(Optional) string giving the column name in `data` of variant IDs to use for labeling results tables}
 
-\item{CovIntercept}{Default = 0,}
+\item{CovIntercept}{Intercept from LD score regression for genetic correlation between the two phenotypes. Default = 0 corresponds to assuming no sample overlap or correlated confounding.}
 
-\item{ExposureIntercept}{Default =1,}
+\item{ExposureIntercept}{Intercept from univariate LD score regression of the exposure phenotype. Used for estimate of correlated error (default = 1).}
 
-\item{OutcomeIntercept}{Default =1,}
+\item{OutcomeIntercept}{Intercept from univariate LD score regression of the outcome phenotype. Used for estimate of correlated error (default = 1).}
 
-\item{OutlierNull}{Default = "estimate"}
+\item{OutlierNull}{String, either "estimate" or "fitted", indicating which null hypothesis to use in outlier testing. Recommended default is "estimate". See Details.}
 
-\item{SignifThreshold}{Default = 0.05,}
+\item{SignifThreshold}{Significance threshold for testing outlier status,prior to multiple testing correction (default = 0.05).}
 
-\item{NullReplicates}{Default = NA,}
+\item{NullReplicates}{Number of simulated null replicates to use for hypothesis testing. If NA (default), analytic tests are used rather than simulated replicates.}
 
-\item{maxOutlierReps}{Default =10,}
+\item{maxOutlierReps}{Maximum number of iterations to use when idenfiying stable outlier set (default = 10).}
 
-\item{seed}{Default = NULL,}
+\item{seed}{Random seed, for use with simulated null.}
 
-\item{printProgress}{Default = TRUE}
+\item{printProgress}{Logical, whether to print logging messages.}
 }
 \value{
-List with elements:
+Structured list with elements:
 \describe{
 
-  \item{\code{Global Test}}{xxx}
+  \item{\code{Global Test}}{Data frame with results for the test of overall heterogeneity in the York regression. Provides values `RSSobs`, the weighted residual sum of squares observed, and the corresponding `Pvalue` for the test of excess heterogeneity.}
   
-  \item{\code{xxx}}{xxx}
+  \item{\code{Slope Estimates}}{Data frame with regression results. Includes York regression results for all variants and excluding outliers, as well as Inverse Variance Weighted (IVW) and Egger regression for comparison.}
+  
+  \item{\code{Outlier Tests}}{Data frame containing the input effect sizes and standard errors along with the observed weighted residuals and corresponding P-values for the initial York regression (including all variants) and the final York regression after outlier exclusions. NA values indicate failed convergence. If `ids` were provided, they are present as the row names for this table.}
+  
+  \item{\code{Outlier Convergence}}{List with information on `Iterations`, whether the outlier testing `Converged`, the number of iterations performed (`NumberIterations`), and the signficance threshold for identifying outliers after Bonferroni correction for the number of included variants (`SignifTheshold`). `Iterations` is a data frame where each column is a variant and each row is an iteration, with true/false values indicating whether the given variants was a putative outlier in the given iteration. If the procedure converged, the final outlier selection is given by the last row.}
 
 }
 }
 \description{
-xxx
+Runs SCOUTJOY (Elliott et al., medrxiv) on input effect sizes and standard error to identify a primary regression slope and potential outliers.
 }
 \details{
 xxx
 }
 \examples{
 
-x <- stats::rnorm(20)
+# data generation settings
+n <- 50
+a0 <- 0
+b <- .75
+re <- 0.3
+
+# generate underlying data without error
+xtrue <- rnorm(n,.5,.3)
+ytrue <- a0 + b*xtrue
+
+# add outliers
+ytrue[1:3] <- ytrue[1:3] + .35*xtrue[1:3]
+
+# define SEs
+xsd <- sqrt(runif(n,.05,1))
+ysd <- sqrt(runif(n,.05,0.5))
+
+# generate data with SEs
+obs <- t(sapply(1:n, function(i) MASS::mvrnorm(1, mu=c(xtrue[i],ytrue[i]), Sigma = matrix(c(xsd[i]^2, re*xsd[i]*ysd[i], re*xsd[i]*ysd[i], ysd[i]^2),2,2))))
+dat <- data.frame(x=obs[,1],sx=xsd,y=obs[,2],sy=ysd,re=re)
+
+# run scoutjoy
+fit <- scoutjoy("y", "x", "sy", "sx", dat, CovIntercept = re, ExposureIntercept = 1, OutcomeIntercept = 1)
 
 }
 \references{
-xxx
+Elliott A, Walters RK, Pirinen M, Kurki M, Junna N, Goldstein J, Reeve MP, Siirtola H, Lemmelä, Turley P, FinnGen, Palotie A, Daly M, Widén E. (2023). Distinct and shared genetic architectures of gestational diabetes mellitus and Type 2 diabetes mellitus. medRxiv. doi: \url{https://doi.org/10.1101/2023.02.16.23286014}
 }

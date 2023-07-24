@@ -1,7 +1,7 @@
 #' Significant Cross-trait OUtliers and Trends in JOint York regression (SCOUTJOY)
 #'
-#' @description
-#' xxx
+#' @description 
+#' Runs SCOUTJOY (Elliott et al., medrxiv) on input effect sizes and standard error to identify a primary regression slope and potential outliers.
 #'
 #' @details
 #' xxx
@@ -12,10 +12,10 @@
 #' @param BetaExposure 
 #' String, giving the column name in `data` for the effect sizes (betas) on the exposure (x-axis trait)
 #' 
-#' @param SdOutcome,
+#' @param SdOutcome
 #' String, giving the column name in `data` for the standard error (se) of the effect sizes on the outcome (y-axis trait)
 #' 
-#' @param SdExposure, 
+#' @param SdExposure 
 #' String, giving the column name in `data` for the standard error (se) of the effect sizes on the exposure (x-axis trait)
 #' 
 #' @param data
@@ -25,40 +25,44 @@
 #' (Optional) string giving the column name in `data` of variant IDs to use for labeling results tables
 #' 
 #' @param CovIntercept 
-#' Default = 0, 
+#' Intercept from LD score regression for genetic correlation between the two phenotypes. Default = 0 corresponds to assuming no sample overlap or correlated confounding. 
 #' 
 #' @param ExposureIntercept
-#' Default =1, 
+#' Intercept from univariate LD score regression of the exposure phenotype. Used for estimate of correlated error (default = 1).
 #' 
 #' @param OutcomeIntercept
-#' Default =1, 
+#' Intercept from univariate LD score regression of the outcome phenotype. Used for estimate of correlated error (default = 1). 
 #' 
 #' @param OutlierNull
-#' Default = "estimate"
+#' String, either "estimate" or "fitted", indicating which null hypothesis to use in outlier testing. Recommended default is "estimate". See Details.
 #' 
 #' @param SignifThreshold 
-#' Default = 0.05,
+#' Significance threshold for testing outlier status,prior to multiple testing correction (default = 0.05).
 #' 
 #' @param NullReplicates 
-#' Default = NA, 
+#' Number of simulated null replicates to use for hypothesis testing. If NA (default), analytic tests are used rather than simulated replicates. 
 #' 
 #' @param maxOutlierReps
-#' Default =10, 
+#' Maximum number of iterations to use when idenfiying stable outlier set (default = 10). 
 #' 
 #' @param seed 
-#' Default = NULL, 
+#' Random seed, for use with simulated null. 
 #' 
 #' @param printProgress 
-#' Default = TRUE
+#' Logical, whether to print logging messages.
 #'
 #'
 #' @return
-#' List with elements:
+#' Structured list with elements:
 #' \describe{
 #'
-#'   \item{\code{Global Test}}{xxx}
+#'   \item{\code{Global Test}}{Data frame with results for the test of overall heterogeneity in the York regression. Provides values `RSSobs`, the weighted residual sum of squares observed, and the corresponding `Pvalue` for the test of excess heterogeneity.}
 #'   
-#'   \item{\code{xxx}}{xxx}
+#'   \item{\code{Slope Estimates}}{Data frame with regression results. Includes York regression results for all variants and excluding outliers, as well as Inverse Variance Weighted (IVW) and Egger regression for comparison.}
+#'   
+#'   \item{\code{Outlier Tests}}{Data frame containing the input effect sizes and standard errors along with the observed weighted residuals and corresponding P-values for the initial York regression (including all variants) and the final York regression after outlier exclusions. NA values indicate failed convergence. If `ids` were provided, they are present as the row names for this table.}
+#'   
+#'   \item{\code{Outlier Convergence}}{List with information on `Iterations`, whether the outlier testing `Converged`, the number of iterations performed (`NumberIterations`), and the signficance threshold for identifying outliers after Bonferroni correction for the number of included variants (`SignifTheshold`). `Iterations` is a data frame where each column is a variant and each row is an iteration, with true/false values indicating whether the given variants was a putative outlier in the given iteration. If the procedure converged, the final outlier selection is given by the last row.}
 #'
 #' }
 #'
@@ -66,11 +70,33 @@
 #'
 #' @references
 #'
-#' xxx
-#'
+#' Elliott A, Walters RK, Pirinen M, Kurki M, Junna N, Goldstein J, Reeve MP, Siirtola H, Lemmelä, Turley P, FinnGen, Palotie A, Daly M, Widén E. (2023). Distinct and shared genetic architectures of gestational diabetes mellitus and Type 2 diabetes mellitus. medRxiv. doi: \url{https://doi.org/10.1101/2023.02.16.23286014}
+#' 
 #' @examples
 #'
-#' x <- stats::rnorm(20)
+#' # data generation settings
+#' n <- 50
+#' a0 <- 0
+#' b <- .75
+#' re <- 0.3
+#' 
+#' # generate underlying data without error
+#' xtrue <- rnorm(n,.5,.3)
+#' ytrue <- a0 + b*xtrue
+#' 
+#' # add outliers
+#' ytrue[1:3] <- ytrue[1:3] + .35*xtrue[1:3]
+#' 
+#' # define SEs
+#' xsd <- sqrt(runif(n,.05,1))
+#' ysd <- sqrt(runif(n,.05,0.5))
+#' 
+#' # generate data with SEs
+#' obs <- t(sapply(1:n, function(i) MASS::mvrnorm(1, mu=c(xtrue[i],ytrue[i]), Sigma = matrix(c(xsd[i]^2, re*xsd[i]*ysd[i], re*xsd[i]*ysd[i], ysd[i]^2),2,2))))
+#' dat <- data.frame(x=obs[,1],sx=xsd,y=obs[,2],sy=ysd,re=re)
+#'
+#' # run scoutjoy
+#' fit <- scoutjoy("y", "x", "sy", "sx", dat, CovIntercept = re, ExposureIntercept = 1, OutcomeIntercept = 1)
 #' 
 
 
@@ -146,7 +172,7 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
     if(!mod_all$converge$converged){
       stop("york regression failed to converge for global test")
     }
-    GlobalTest <- list(RSSobs = mod_all$chi2, Pvalue = mod_all$p.value)
+    GlobalTest <- data.frame(RSSobs = mod_all$chi2, Pvalue = mod_all$p.value)
     
   }else{
   	
@@ -162,7 +188,7 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
   	randomData <- replicate(NullReplicates, getRandomData(BetaOutcome = BetaOutcome, BetaExposure = BetaExposure, SdOutcome = SdOutcome, SdExposure = SdExposure, loo_betas = loo_betas, CovIntercept = CovIntercept, ExposureIntercept=ExposureIntercept, OutcomeIntercept=OutcomeIntercept, data = data, yorkResid = TRUE), simplify = FALSE)
   	RSSexp <- sapply(randomData, fit_LOO, BetaOutcome = BetaOutcome, BetaExposure = BetaExposure, SdOutcome = SdOutcome, SdExposure = SdExposure, york = TRUE, yorkResid = TRUE, CovIntercept=CovIntercept, ExposureIntercept=ExposureIntercept, OutcomeIntercept=OutcomeIntercept, FixedSlope = FixedSlope) 
   
-  	GlobalTest <- list(RSSobs = RSSobs, Pvalue = (sum(RSSexp[1, ] > RSSobs)+1)/(NullReplicates+1))
+  	GlobalTest <- data.frame(RSSobs = RSSobs, Pvalue = (sum(RSSexp[1, ] > RSSobs)+1)/(NullReplicates+1))
 
   }
 
@@ -392,19 +418,212 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
 	
 	
 
-
-	res_tests <- list(`Global Test` = GlobalTest)
-
 	if(IterateOutliers){
-		res <- list(`Omnibus Tests` = res_tests, `Slope Estimates` = MR, `Outlier Tests` = OutlierTest, `Outlier Convergence` = OutlierTestControl)
+		res <- list(`Global Test` = GlobalTest, `Slope Estimates` = MR, `Outlier Tests` = OutlierTest, `Outlier Convergence` = OutlierTestControl)
 	}else if(!is.null(FixedSlope)){
-		res <- list(`Omnibus Tests` = res_tests, `Slope Tests` = SlopeTest, `Outlier Tests` = OutlierTest)
+		res <- list(`Global Test` = GlobalTest, `Slope Tests` = SlopeTest, `Outlier Tests` = OutlierTest)
 	}else{
-		res <- list(`Omnibus Tests` = res_tests, `Slope Estimates` = MR, `Outlier Tests` = OutlierTest)
+		res <- list(`Global Test` = GlobalTest, `Slope Estimates` = MR, `Outlier Tests` = OutlierTest)
 	}
 	
 
-	
 	if(printProgress){print("Done!")}
 	return(res)
 }
+
+
+#################################
+
+#' Plot SCOUTJOY results
+#'
+#' @param fit
+#' output of \link{scoutjoy}`
+#' 
+#' @param label
+#' string, whether to label "outliers", "all", or "none".
+#' 
+#' @param colors
+#' list of colors to use for plotting base regression, regression excluding outliers, outlier points, and other points, respectively.
+#' 
+#' @param se_bars
+#' logical, whether to include standard error bars
+#' 
+#' @param legend
+#' logical, whether to include a legend
+#' 
+#' @param legend_names
+#' list of names to use for slopes and outliers (only affects legend)
+#' 
+#' @param se_length
+#' length for caps on SE intervals; passed to \link{arrows}
+#'
+#' @param ...
+#' additional parameters to be passed directly to \link{plot()}
+#'
+#'
+#' @export
+#'
+
+plot.scoutjoy <- function(fit, label="outlier", colors=c("darkred","darkblue","darkorange","black"), se_bars=TRUE, legend=TRUE, legend_names=c("all variants","excluding outliers","outliers"), se_length=0.025, ...){
+  
+  args <- list(...)
+  
+  if(!is.list(fit) || !hasName(fit,"Slope Estimates") || !hasName(fit,"Outlier Tests") || !hasName(fit,"Outlier Convergence")){
+    stop("fit does not appear to be scoutjoy results output.")
+  }
+    
+  if(!label %in% c("outliers", "all", "none")){
+    stop("label must be one of: 'outliers', 'all', or 'none'.")
+  }
+  
+  
+  x <- fit$`Outlier Tests`[,1]
+  y <- fit$`Outlier Tests`[,3]
+  sx <- fit$`Outlier Tests`[,2]
+  sy <- fit$`Outlier Tests`[,4]
+  
+  slope_base <- fit$`Slope Estimates`[fit$`Slope Estimates`$Method=="York (base)","Estimate"]
+  slope_outlier <- fit$`Slope Estimates`[fit$`Slope Estimates`$Data=="Exclude_final_outliers","Estimate"]
+  
+  isout <- t(fit$`Outlier Convergence`$Iterations[nrow(fit$`Outlier Convergence`$Iterations),])
+  
+  if(!("xlab" %in% names(args))){
+    args$xlab <- colnames(fit$`Outlier Tests`)[1]
+  }
+  
+  if(!("ylab" %in% names(args))){
+    args$ylab <- colnames(fit$`Outlier Tests`)[3]
+  }
+
+  if(!("xlim" %in% names(args))){
+    args$xlim <- c(min(0,min(x-sx)), 1.1*max(x+sx))
+  }
+  
+  if(!("ylim" %in% names(args))){
+    args$ylim <- c(min(0,min(y-sy)), 1.1*max(y+sy))
+  }
+  
+  
+  if(!("main" %in% names(args))){
+    args$main <- ""
+  }
+  
+  if(!("pch" %in% names(args))){
+    args$pch <- 20
+  }
+  
+  if(!("cex" %in% names(args))){
+    args$cex <- 1
+  }
+  
+  if(!("lwd" %in% names(args))){
+    args$lwd <- 2
+  }
+  
+  if(!("las" %in% names(args))){
+    args$las <- 1
+  }
+  
+  
+  if(!("bty" %in% names(args))){
+    args$bty <- 'l'
+  }
+  
+  if(!("mar" %in% names(args))){
+    mar <- c(3.5, 3.5, 1.5, 1.5)
+  }else{
+    mar <- args$mar
+  }
+  
+  if(!("mgp" %in% names(args))){
+    mgp <- c(2.25,1,0)
+  }else{
+    mgp <- args$mgp
+  }
+  
+  mar_bak <- par()$mar
+  mgp_bak <- par()$mgp
+  
+  par(mar=mar, mgp=mgp)
+  
+  args$x <- 0
+  args$y <- 0
+  args$col <- rgb(0,0,0,0)
+  do.call(plot, args)
+  
+
+  abline(h=0,col="grey20",lwd=0.5)
+  abline(v=0,col="grey20",lwd=0.5)
+  abline(0,1,col="grey80",lty=2)
+  abline(0,-1,col="grey80",lty=2)
+  
+  
+  if(se_bars){    
+    arrows(x0=x, x1=x, y0=y-sy, y1=y+sy, length=se_length, angle=90, code=3, col="grey50")
+    arrows(x0=x-sx, x1=x+sx, y0=y, y1=y, length=se_length, angle=90, code=3, col="grey50")
+  }
+  
+  points(x[!isout], y[!isout],
+         pch=args$pch,
+         col=colors[4],
+         cex=args$cex)
+  
+  points(x[isout], y[isout],
+         pch=args$pch,
+         col=colors[3],
+         cex=args$cex)
+  
+
+  abline(0, slope_base, col=colors[1], lwd=args$lwd)
+  abline(0, slope_outlier, col=colors[2], lwd=args$lwd)
+  
+
+  if(legend){
+    if(length(legend_names)==2){
+      legend("topright", 
+             fill=colors[1:2],
+             border=colors[1:2],
+             # lwd=rep(lwd,k+1), 
+             cex = 0.9*args$cex, 
+             bg="white",
+             box.col="white", 
+             legend = legend_names)
+    }else if(length(legend_names)==3){
+      legend("topright", 
+             col=colors[1:3],
+             lwd=c(rep(args$lwd,2),NA),
+             pch=c(NA,NA,args$pch),
+             cex = 0.9*args$cex, 
+             bg="white",
+             box.col="white", 
+             legend = legend_names)
+    }else if(length(legend_names)==4){
+      legend("topright", 
+             col=colors[1:4],
+             lwd=c(rep(args$lwd,2),NA,NA),
+             pch=c(NA,NA,rep(args$pch,2)),
+             cex = 0.9*args$cex, 
+             bg="white",
+             box.col="white", 
+             legend = legend_names)
+  }
+  }
+  
+  
+  if(label=="all"){
+    text(x=x, 
+         y=y, 
+         labels=rownames(fit$`Outlier Tests`), 
+         cex=0.8, adj=c(-.4,-.25))
+  }else if(label=="outlier"){
+    text(x=x[isout], 
+         y=y[isout], 
+         labels=rownames(fit$`Outlier Tests`)[isout], 
+         cex=0.8, adj=c(-.4,-.25))
+  }
+  
+  
+  par(mar=mar_bak, mgp=mgp_bak)
+  
+}
+
