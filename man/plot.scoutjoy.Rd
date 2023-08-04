@@ -4,7 +4,7 @@
 \alias{plot.scoutjoy}
 \title{Plot SCOUTJOY results}
 \usage{
-\method{plot}{scoutjoy}(fit, label = "outlier", colors = c("darkred",
+\method{plot}{scoutjoy}(fit, label = "outliers", colors = c("darkred",
   "darkblue", "darkorange", "black"), se_bars = TRUE, legend = TRUE,
   legend_names = c("all variants", "excluding outliers", "outliers"),
   se_length = 0.025, ...)

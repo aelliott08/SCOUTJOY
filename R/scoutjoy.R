@@ -426,7 +426,7 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
 		res <- list(`Global Test` = GlobalTest, `Slope Estimates` = MR, `Outlier Tests` = OutlierTest)
 	}
 	
-
+	class(res) <- "scoutjoy"
 	if(printProgress){print("Done!")}
 	return(res)
 }
@@ -461,14 +461,15 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
 #' additional parameters to be passed directly to \link{plot()}
 #'
 #'
+#' @export plot.scoutjoy
 #' @export
 #'
 
-plot.scoutjoy <- function(fit, label="outlier", colors=c("darkred","darkblue","darkorange","black"), se_bars=TRUE, legend=TRUE, legend_names=c("all variants","excluding outliers","outliers"), se_length=0.025, ...){
+plot.scoutjoy <- function(fit, label="outliers", colors=c("darkred","darkblue","darkorange","black"), se_bars=TRUE, legend=TRUE, legend_names=c("all variants","excluding outliers","outliers"), se_length=0.025, ...){
   
   args <- list(...)
   
-  if(!is.list(fit) || !hasName(fit,"Slope Estimates") || !hasName(fit,"Outlier Tests") || !hasName(fit,"Outlier Convergence")){
+  if(!(class(fit)=="scoutjoy") || !is.list(fit) || !hasName(fit,"Slope Estimates") || !hasName(fit,"Outlier Tests") || !hasName(fit,"Outlier Convergence")){
     stop("fit does not appear to be scoutjoy results output.")
   }
     
@@ -483,7 +484,11 @@ plot.scoutjoy <- function(fit, label="outlier", colors=c("darkred","darkblue","d
   sy <- fit$`Outlier Tests`[,4]
   
   slope_base <- fit$`Slope Estimates`[fit$`Slope Estimates`$Method=="York (base)","Estimate"]
-  slope_outlier <- fit$`Slope Estimates`[fit$`Slope Estimates`$Data=="Exclude_final_outliers","Estimate"]
+  if("Exclude_final_outliers" %in% fit$`Slope Estimates`$Data){
+    slope_outlier <- fit$`Slope Estimates`[fit$`Slope Estimates`$Data=="Exclude_final_outliers","Estimate"]
+  }else{
+    slope_outlier <- NA
+  }
   
   isout <- t(fit$`Outlier Convergence`$Iterations[nrow(fit$`Outlier Convergence`$Iterations),])
   
@@ -575,15 +580,23 @@ plot.scoutjoy <- function(fit, label="outlier", colors=c("darkred","darkblue","d
   
 
   abline(0, slope_base, col=colors[1], lwd=args$lwd)
-  abline(0, slope_outlier, col=colors[2], lwd=args$lwd)
-  
+  if(!is.na(slope_outlier)){
+    abline(0, slope_outlier, col=colors[2], lwd=args$lwd)
+  }
 
   if(legend){
-    if(length(legend_names)==2){
+    if(is.na(slope_outlier)){
+      legend("topright",
+             fill=colors[1],
+             border=colors[1],
+             cex = 0.9*args$cex,
+             bg="white",
+             box.col="white",
+             legend = legend_names[1])
+    }else if(length(legend_names)==2){
       legend("topright", 
              fill=colors[1:2],
              border=colors[1:2],
-             # lwd=rep(lwd,k+1), 
              cex = 0.9*args$cex, 
              bg="white",
              box.col="white", 
