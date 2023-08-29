@@ -628,7 +628,7 @@ plot.scoutjoy <- function(fit, label="outliers", colors=c("darkred","darkblue","
          y=y, 
          labels=rownames(fit$`Outlier Tests`), 
          cex=0.8, adj=c(-.4,-.25))
-  }else if(label=="outlier"){
+  }else if(label=="outliers"){
     text(x=x[isout], 
          y=y[isout], 
          labels=rownames(fit$`Outlier Tests`)[isout], 
