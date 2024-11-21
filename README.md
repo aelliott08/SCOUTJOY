@@ -4,19 +4,21 @@ Significant Cross-trait OUtliers and Trends in JOint York regression
 
 # Installation:
 
+This R package can be installed using the `devtools` package as follows:
+
 ```
 require(devtools)
 devtools::install_github("aelliott08/SCOUTJOY", ref="main")
 ```
 
-Currently requires a PAT (personal access token) to install from private repo. Instructions for creating a PAT can be found [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token). You can then either supply it to `install_github` with the argument `auth_token` or make it available with environment variable `GITHUB_PAT`, e.g. by adding it to your `~/.Rprofile`:
-
-```
-Sys.setenv(GITHUB_PAT="YOUR_PAT_HERE")
-```
-
 # Usage
 
-See `?scoutjoy` (under development)
+See the documentation in R using `?scoutjoy` 
 
+# Citation
 
+Methods details can be found in:
+
+> Elliott, A., Walters, R.K., Pirinen, M. et al. Distinct and shared genetic architectures of gestational diabetes mellitus and type 2 diabetes. Nat Genet 56, 377–382 (2024). https://doi.org/10.1038/s41588-023-01607-4
+
+We ask that you cite this paper when using SCOUTJOY.
