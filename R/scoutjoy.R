@@ -215,7 +215,7 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
 	# initial outliers
   refOutlier <- which(OutlierTest$Pvalue <= SignifThreshold/nrow(data))
       	
-  if(IterateOutliers && is.null(FixedSlope) && (length(refOutlier)>0)){
+  if(IterateOutliers && is.null(FixedSlope) && (length(refOutlier)>0) && (length(refOutlier)<nrow(data))){
   		OutlierReps <- matrix(FALSE,2,nrow(data))
   		colnames(OutlierReps) <- rownames(data)
   		OutlierReps[2,refOutlier] <- TRUE
@@ -267,11 +267,20 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
   			OutlierReps[nreps+1,] <- rep(FALSE,nrow(data))
   			OutlierReps[nreps+1,refOutlier] <- TRUE
   			
+  			if(length(refOutlier)==nrow(data)){
+  			  nreps <- nreps+1
+  			  OutlierReps[nreps+1,] <- OutlierReps[nreps,]
+  			  break
+  			}
+  			
   		}
   		
   		OutlierReps <- OutlierReps[c(-1),]
   		outlier_converged <- FALSE
-  		if(isTRUE(all.equal(OutlierReps[nrow(OutlierReps),],OutlierReps[nrow(OutlierReps)-1,],check.attributes=FALSE))){
+  		if(all(OutlierReps[nrow(OutlierReps),])){
+  		  warning(paste0("Outlier test identifies all points as outliers"))
+  		  OutlierTest$RSSobs <- cbind.data.frame(RSSobs=rep(NA,nrow(data)),Pvalue=rep(NA,nrow(data))) 
+  		}else if(isTRUE(all.equal(OutlierReps[nrow(OutlierReps),],OutlierReps[nrow(OutlierReps)-1,],check.attributes=FALSE))){
   			outlier_converged <- TRUE
   			OutlierReps <- OutlierReps[-nrow(OutlierReps),]
   			if(printProgress){print(paste0("Outlier test iterations converged"))}
@@ -299,6 +308,10 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
 		OutlierReps[1,refOutlier] <- TRUE
 		OutlierReps <- as.data.frame(OutlierReps)
 		
+		if(length(refOutlier) == nrow(data)){
+		  warning(paste0("Outlier test identifies all points as outliers"))
+		}
+		
 		OutlierTestControl <- list(
 			Iterations=OutlierReps,
 			Converged=TRUE,
@@ -323,7 +336,7 @@ scoutjoy <- function(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, ids
 		refOutlier <- which(OutlierTest$Pvalue <= SignifThreshold)
 	}
 
-	if(length(refOutlier) > 0){
+	if(length(refOutlier) > 0 && length(refOutlier) < nrow(data)){
 	  mod_noOutliers <- RegressionFit(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data[-refOutlier,], york = TRUE, CovIntercept = CovIntercept, ExposureIntercept=ExposureIntercept, OutcomeIntercept=OutcomeIntercept, FixedSlope = FixedSlope)
 	}
 
