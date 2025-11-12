@@ -4,11 +4,23 @@
 \alias{scoutjoy}
 \title{Significant Cross-trait OUtliers and Trends in JOint York regression (SCOUTJOY)}
 \usage{
-scoutjoy(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data,
-  ids = NULL, CovIntercept = 0, ExposureIntercept = 1,
-  OutcomeIntercept = 1, OutlierNull = "estimate",
-  SignifThreshold = 0.05, NullReplicates = NA, maxOutlierReps = 10,
-  seed = NULL, printProgress = TRUE)
+scoutjoy(
+  BetaOutcome,
+  BetaExposure,
+  SdOutcome,
+  SdExposure,
+  data,
+  ids = NULL,
+  CovIntercept = 0,
+  ExposureIntercept = 1,
+  OutcomeIntercept = 1,
+  OutlierNull = "estimate",
+  SignifThreshold = 0.05,
+  NullReplicates = NA,
+  maxOutlierReps = 10,
+  seed = NULL,
+  printProgress = TRUE
+)
 }
 \arguments{
 \item{BetaOutcome}{String, giving the column name in `data` for the effect sizes (betas) on the outcome (y-axis trait)}
